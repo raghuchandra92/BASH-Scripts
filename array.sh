@@ -4,8 +4,8 @@
 SERVERLIST=("websrv01" "websrv02" "websrv03" "websrv04")
 COUNT=0
 
-for INDEX in ${SERVERLIST[@]}; do
+ for INDEX in ${SERVERLIST[@]}; do
  echo "processing server: ${SERVERLIST[COUNT]}"
-  COUNT=" expr $COUNT + 1 "
-done
+  COUNT= (($COUNT+1))
+ done
 
