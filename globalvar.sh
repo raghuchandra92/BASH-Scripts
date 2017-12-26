@@ -1,5 +1,5 @@
 #!/bin/bash
-#This is an example script for global varaibles\
+#This is an example script for how to use functions definitions in scripts
 
 #global varaible declaration
 GLOBALVAR="Globally Visible"
