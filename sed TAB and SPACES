@@ -1,0 +1,8 @@
+Situation:
+so i recently came across this situation in work, so while i was trying to delete empty lines from a file,
+obviously i was using sed command to do that but the lines startin with tab spaces are not deleted. so i started searching 
+google and came across ton of answeres. Now figuring out which command to use, and make sure that command fits into you 
+current situation. 
+
+Task:
+So, my task is to pick a command that work for my environment, 
