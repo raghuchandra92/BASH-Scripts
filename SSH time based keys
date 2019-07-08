@@ -1,0 +1,22 @@
+Below i have written an small bash script to download new keys on daily basis to access public servers. This is good for environments
+that provides time based access to systems
+
+
+#!/bin/bash
+
+file=/Users/username/.ssh/id_rsa-cert.pub
+path=/Users/username/.ssh
+if [ -e "$file" ]; then
+   echo "file exists"
+   echo "removing file now"
+   rm $file
+else 
+   echo "File does not exists"
+fi
+
+curl http://<ip>/path/ro/ssh-keys > ~/.ssh/id_rsa_sshca_test-cert.pub
+cd $path
+ echo "now changing file name and permission of downloaded key"
+cat id_rsa_sshca_test-cert.pub >>id_rsa-cert.pub 
+chmod 600 id_rsa-cert.pub && rm id_rsa_sshca_test-cert.pub
+echo "Good to use new key"
