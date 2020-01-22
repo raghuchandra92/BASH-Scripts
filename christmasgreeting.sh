@@ -6,7 +6,7 @@ AUTHOR="Raghu"
 
 funct () {
 
-echo "Ohhhhhhh Shittttttttt !!!!!!!!  i forgot to ask you name"
+echo "Ohhhhhhh Nooooooo !!!!!!!!  i forgot to ask you name"
 echo "Please enter you name"
 }
 
