@@ -1,0 +1,245 @@
+Kernel: kernel is an intermediary layer between the hardware and the software. Its purpose is to pass application requests to the hardware and 
+to act as a low-level driver to address the devices and components of the system
+
+Kernel types: Microkernels and Monolithic
+
+Processes, Task Switching, and Scheduling
+
+Process: Applications, servers, and other programs running under Unix are traditionally referred to as processes. Each process is assigned address space 
+in the virtual memory of the CPU. The address spaces of the individual processes are totally independent so that the processes are unaware of each other 
+— as far as each process is concerned, it has the impression of being the only process in the system. If processes want to communicate to exchange data, 
+for example, then special kernel mechanisms must be used.
+
+Task Switiching: Because Linux is a multitasking system, it supports what appears to be concurrent execution of several processes. Since only as many 
+processes as there are CPUs in the system can really run at the same time, the kernel switches (unnoticed by users) between the processes at short intervals 
+to give them the impression of simultaneous processing. The kernel, with the help of the CPU, is responsible for the technical details of task switching. 
+Each individual process must be given the illusion that the CPU is always available. This is achieved by saving all state-dependent elements of the process 
+before CPU resources are withdrawn and the process is placed in an idle state. When the process is reactivated, the exact saved state is restored. 
+Switching between processes is known as task switching.
+
+Scheduling: The kernel must also decide how CPU time is shared between the existing processes. Impor- tant processes are given a larger share of CPU time, 
+less important processes a smaller share. The decision as to which process runs for how long is known as scheduling.
+
+init: Linux employs a hierarchical scheme in which each process depends on a parent process. The kernel starts the init program as the first process 
+that is responsible for further system initialization actions and display of the login prompt or (in more widespread use today) display of a graphical login 
+interface. init is therefore the root from which all processes originate, more or less directly
+
+Fork: fork — Generates an exact copy of the current process that differs from the parent process only in its PID (process identification). 
+After the system call has been executed, there are two processes in the system, both performing the same actions. The memory contents of the initial 
+process are duplicated — at least in the view of the program. Linux uses a well-known technique known as copy on write that allows it to make the operation 
+much more efficient by deferring the copy operations until either parent or child writes to a page read-only accessed can be satisfied from the same page 
+for both.A possible scenario for using fork is, for example, when a user opens a second browser window. If the corresponding option is selected, 
+the browser executes a fork to duplicate its code and then starts the appropriate actions to build a new window in the child process.
+(or) 
+fork generates an identical copy of the current process; this copy is known as a child process. All resources of the original process are copied 
+in a suitable way so that after the system call there are two independent instances of the original process. These instances are not linked in any way but have, 
+for example, the same set of open files, the same working directory, the same data in memory (each with its own copy of the data), and so on
+
+Clone: Linux provides the clone method to generate threads. This works in a similar way to fork but enables a precise check to be made of which resources are 
+shared with the parent process and which are generated independently for the thread. This finegrained distribution of resources extends the classical thread 
+concept and allows for a more or less continuous transition between thread and processes.
+(or)
+clone works in the same way as fork, but the new process is not independent of its parent process and can share some resources with it. It is possible to 
+specify which resources are to be shared and which are to be copied — for example, data in memory, open files, or the installed signal handlers of the parent 
+process. clone is used to implement threads. However, the system call alone is not enough to do this. Libraries are also needed in userspace to complete 
+implementation. Examples of such libraries are Linuxthreads and Next Generation Posix Threads.
+
+Exec: exec Loads a new program into an existing content and then executes it. The memory pages reserved by the old program are flushed, and their contents 
+are replaced with new data. The new program then starts executing.
+(or)
+exec replaces a running process with another application loaded from an executable binary file. In other words, a new program is loaded. Because exec does not 
+create a new process, an old program must first be duplicated using fork, and then exec must be called to generate an addi- tional application on the system.
+
+Threads: Processes are not the only form of program execution supported by the kernel. In addition to heavy-weight processes another name for classical 
+Unix processes — there are also threads, sometimes referred to as light-weight processes. essentially, a process may consist of several threads that all 
+share the same data and resources but take different paths through the program code. In simple terms, a process can be seen as an executing program, whereas a 
+thread is a program function or routine running in parallel to the main program. This is useful, for example, when Web browsers need to load several images in 
+parallel. Usually, the browser would have to execute several fork and exec calls to generate parallel instances; these would then be responsible for loading the 
+images and making data received available to the main program using some kind of communication mechanisms. Threads make this situation easier to handle. The browser 
+defines a routine to load images, and the routine is started as a thread with multiple strands (each with different arguments). Because the threads and the 
+main program share the same address space, data received automatically reside in the main program. There is therefore no need for any communication effort 
+whatsoever, except to prevent the threads from stepping onto their feet mutually by accessing identical memory locations, for instance.
+
+NameSpace: During the development of kernel 2.6, support for namespaces was integrated into numerous subsystems. This allows different processes to have different
+views of the system. Traditionally, Linux (and Unix in general) use numerous global quantities, for instance, process identifiers: Every process in the system is 
+equipped with a unique identifier (ID), and this ID can be employed by users (or other processes) to refer to the process — by sending it a signal, for instance. 
+With namespaces, formerly global resources are grouped differently: Every namespace can contain a specific set of PIDs, or can provide different views of the 
+filesystem, where mounts in one namespace do not propagate into different namespaces.Namespaces are useful; for example, they are beneficial for hosting providers:
+Instead of setting up one physical machine per customer, they can instead use containers implemented with namespaces to create multiple views of the system where 
+each seems to be a complete Linux installation from within the container and does not interact with other containers: They are separated and segregated from each 
+other. Every instance looks like a single machine running Linux, but in fact, many such instances can operate simultaneously on a physical machine. This helps use 
+resources more effectively. In contrast to full virtualization solutions like KVM, only a single kernel needs to run on the machine and is responsible to manage 
+all containers.
+
+Address Spaces and Privilege Levels:
+Address Spaces: The maximal size of the address space is not related to how much physical RAM is actually available, and therefore it is known as the virtual address space. 
+One more reason for this terminology is that every process in the system has the impression that it would solely live in this address space, and other processes 
+are not present from their point of view. Applications do not need to care about other applications and can work as if they would run as the only process on the 
+computer.Linux divides virtual address space into two parts known as kernel space and userspace.  Every user process in the system has its own virtual address 
+range that extends from 0 to TASK_SIZE. The area above (from TASK_SIZE to 232 or 264) is reserved exclusively for the kernel — and may not be accessed by user 
+processes, in IA-32 systems, for instance, the address space is divided at 3 GiB so that the virtual address space for each process is 3 GiB; 1 GiB is available 
+to the kernel because the total size of the virtual address space is 4 GiB. Although actual figures differ according to architecture, the general concepts do not. 
+I therefore use these sample values in our further discussions. This division does not depend on how much RAM is available. As a result of address space 
+virtualization, each user process thinks it has 3 GiB of memory. The userspaces of the individual system processes are totally separate from each other. 
+The kernel space at the top end of the virtual address space is always the same, regardless of the process currently executing.
+There are two types of machine that manage physical memory in different ways:
+1. UMA machines (uniform memory access) organize available memory in a contiguous fashion (possibly with small gaps). Each processor (in a symmetric multiprocessor
+system) is able to access each memory area equally quickly.
+2. NUMA machines (non-uniform memory access) are always multiprocessor machines. Local RAM is available to each CPU of the system to support particularly 
+fast access. The proces- sors are linked via a bus to support access to the local RAM of other CPUs — this is naturally slower than accessing local RAM.
+
+Privilege Levels: The kernel divides the virtual address space into two parts so that it is able to protect the individual system processes from each other. 
+All modern CPUs offer several privilege levels in which processes can reside. There are various prohibitions in each level including, for example, execution of 
+certain assembly language instructions or access to specific parts of virtual address space. Intel variant distinguishes four different levels, Linux uses only 
+two different modes — kernel mode and user mode. The key difference between the two is that access to the memory area above TASK_SIZE — that is, 
+kernel space — is forbidden in user mode. User processes are not able to manipulate or read the data in kernel space. Neither can they execute code stored there. 
+This is the sole domain of the kernel. This mechanism prevents processes from interfering with each other by unintentionally influencing each other’s data.
+
+System calls: The switch from user to kernel mode is made by means of special transitions known as system calls; these are executed differently depending on the 
+system. If a normal process wants to carry out any kind of action affecting the entire system (e.g., manipulating I/O devices), it can do this only by issuing a 
+request to the kernel with the help of a system call. The kernel first checks whether the process is permitted to perform the desired action and then performs the 
+action on its behalf. A return is then made to user mode. System calls are the classical method of enabling user processes to interact with the kernel. 
+The POSIX standard defines a number of system calls and their effect as implemented on all POSIX-compliant sys- tems including Linux. Traditional system calls 
+are grouped into various categories:
+❑ Process Management — Creating new tasks, querying information, debugging
+❑ Signals — Sending signals, timers, handling mechanisms
+❑ Files — Creating, opening, and closing files, reading from and writing to files, querying infor- mation and status
+❑ Directories and Filesystem — Creating, deleting, and renaming directories, querying informa- tion, links, changing directories
+❑ Protection Mechanisms — Reading and changing UIDs/GIDs, and namespace handling
+❑ Timer Functions — Timer functions and statistical information
+Demands are placed on the kernel in all these functions. They cannot be implemented in a normal user library because special protection mechanisms are needed to 
+ensure that system stability and/or security are not endangered. In addition, many calls are reliant on kernel-internal structures or functions to yield desired 
+data or results — this also dictates against implementation in userspace. When a system call is issued, the processor must change the privilege level and switch 
+from user mode to system mode. There is no standardized way of doing this in Linux as each hardware platform offers specific mechanisms. In some cases, different 
+approaches are implemented on the same architecture but depend on processor type. What all variants have in common is that system calls are the only way of 
+enabling user processes to switch in their own incentive from user mode to kernel mode in order to delegate system-critical tasks.
+
+Kernel threads: Kernel threads are also not associated with any particular userspace process, so they also have no business dealing with the user portion of the 
+address space. In many other respects, kernel threads behave much more like regular userland applications. they may go to sleep, and they are also tracked by the 
+scheduler like every regular process in the system. The kernel uses them for various purposes that range from data synchronization of RAM and block devices to 
+helping the scheduler distribute processes among CPUs. Notice that kernel threads can be easily identified in the output of ps because their names are placed 
+inside brackets when ps fax command is used on command line. On multiprocessor systems, many threads are started on a per-CPU basis and are restricted to run on 
+only one specific processor. This is represented by a slash and the number of the CPU that are appended to the name of the kernel thread. Kernel threads appear 
+in the system process list but are enclosed in square brackets in the output of ps to differentiate them from normal processes.
+(or)
+Kernel threads are processes started directly by the kernel itself. They delegate a kernel function to a separate process and execute it there in ‘‘parallel‘‘ to 
+the other processes in the system (and, in fact, in parallel to execution of the kernel itself).15 Kernel threads are often referred to as (kernel) daemons. 
+They are used to perform, for example, the following tasks:
+❑ To periodically synchronize modified memory pages with the block device from which the pages originate (e.g., files mapped using mmap).
+❑ To write memory pages into the swap area if they are seldom used.
+❑ To manage deferred actions.
+❑ To implement transaction journals for filesystems.
+Basically, there are two types of kernel thread:
+❑ Type 1 — The thread is started and waits until requested by the kernel to perform a specific action.
+❑ Type 2 — Once started, the thread runs at periodic intervals, checks the utilization of a specific resource, and takes action when utilization 
+exceeds or falls below a set limit value. The kernel uses this type of thread for continuous monitoring tasks.
+
+
+Virtual and Physical Address Spaces
+pages: a single virtual address space is bigger than the physical RAM available to the system. And the situation does not improve when each process has its own 
+virtual address space. The kernel and CPU must therefore consider how the physical memory actually available can be mapped onto virtual address areas. The 
+preferred method is to use page tables to allocate virtual addresses to physical addresses. Whereas virtual addresses relate to the combined user and kernel space 
+of a process, physical addresses are used to address the RAM actually available. The virtual address spaces of both processes shown in the figure are divided into 
+portions of equal size by the kernel. These portions are known as pages. Physical memory is also divided into pages of the same size. Physical pages are often 
+called page frames. In contrast, the term page is reserved for pages in virtual address space.
+
+Memory mappings: They are used at many points in the kernel and are also available to user applications. Mapping is the method by which data from an arbitrary 
+source are transferred into the virtual address space of a process. The address space areas in which mapping takes place can be processed using normal methods 
+in the same way as regular memory. However, any changes made are transferred automatically to the original data source. This makes it possible to use identical 
+functions to process totally different things. For example, the contents of a file can be mapped into memory. A process then need only read the contents of memory 
+to access the contents of the file, or write changes to memory in order to modify the contents of the file. The kernel automatically ensures that any changes made
+are implemented in the file.
+
+buddy systems: he kernel must keep track of which pages have already been allocated and which are still free in order to prevent two processes from using the 
+same areas in RAM. Because memory allocation and release are very frequent tasks, the kernel must also ensure that they are completed as quickly as possible. 
+The kernel can allocate only whole page frames. Dividing memory into smaller portions is delegated to the standard library in userspace. This library splits the 
+page frames received from the kernel into smaller areas and allocates memory to the processes. Numerous allocation requests in the kernel must be fulfilled by a 
+continuous range of pages. To quickly detect where in memory such ranges are still available, the kernel employs an old, but proven technique: The buddy system.
+Free memory blocks in the system are always grouped as two buddies. The buddies can be allocated independently of each other; if, however, both remain unused at 
+the same time, the kernel merges them into a larger pair that serves as a buddy on the next level
+
+fragmentation: When systems run for longer periods — it is not unusual for servers to run for several weeks or even months, and many desktop systems also tend to 
+reach long uptime — a memory management problem known as fragmentation occurs. The frequent allocation and release of page frames may lead to a situation in which 
+several page frames are free in the system but they are scattered throughout physical address space — in other words, there are no larger contiguous blocks of page 
+frames, as would be desirable for performance reasons. This effect is reduced to some extent by the buddy system but not completely eliminated. Single reserved 
+pages that sit in the middle of an otherwise large continuous free range can eliminate coalescing of this range very effectively
+
+Device Drivers, Block and Character Devices
+Device Drivers: The role of device drivers is to communicate with I/O devices attached to the system; for example, hard disks, floppies, interfaces, sound cards, 
+and so on. In accordance with the classical Unix maxim that ‘‘everything is a file,’’ access is performed using device files that usually reside in the /dev 
+directory and can be processed by programs in the same way as regular files. The task of a device driver is to support application communication via device files; 
+in other words, to enable data to be read from and written to a device in a suitable way
+
+Character Devices — Deliver a continuous stream of data that applications read sequen- tially; generally, random access is not possible. Instead, such devices 
+allow data to be read and written byte-by-byte or character-by-character. Modems are classical examples of character devices.
+
+Block Devices — Allow applications to address their data randomly and to freely select the position at which they want to read data. Typical block devices are 
+hard disks because appli- cations can address any position on the disk from which to read data. Also, data can be read or written only in multiples of block units 
+(usually 512 bytes); character-based addressing, as in character devices, is not possible.
+
+Filesystems (inodes): Linux systems are made up of many thousands or even millions of files whose data are stored on hard disks or other block devices 
+(e.g., ZIP drives, floppies, CD-ROMs, etc.). Hierarchical filesystems are used; these allow stored data to be organized into directory structures and also have 
+the job of linking other meta-information (owners, access rights, etc.) with the actual data. Many different filesystem approaches are supported by Linux — the 
+standard filesystems Ext2 and Ext3, ReiserFS, XFS, VFAT (for reasons of compatibility with DOS), and countless more. The concepts on which they build differ 
+drastically in part. Ext2 is based on inodes, that is, it makes a separate management structure known as an inode available on disk for each file. The inode 
+contains not only all meta-information but also pointers to the associated data blocks. Hierarchical structures are set up by representing directories as regular 
+files whose data section includes pointers to the inodes of all files contained in the directory. In contrast, ReiserFS makes extensive use of tree structures 
+to deliver the same functionality. The kernel must provide an additional software layer to abstract the special features of the various low- level filesystems 
+from the application layer (and also from the kernel itself). This layer is referred to as the VFS (virtual filesystem or virtual filesystem switch). It acts as 
+an interface downward (this interface must be implemented by all filesystems) and upward (for system calls via which user processes are ultimately able to access 
+filesystem functions).
+
+Process Life Cycle: A process is not always ready to run. Occasionally, it has to wait for events from external sources beyond its control — for keyboard input 
+in a text editor, for example. Until the event occurs, the process cannot run. The scheduler must know the status of every process in the system when switching 
+between tasks; it obviously doesn’t make sense to assign CPU time to processes that have nothing to do. Of equal impor- tance are the transitions between 
+individual process states. For example, if a process is waiting for data from a peripheral device, it is the responsibility of the scheduler to change the state 
+of the process from waiting to runnable once the data have arrived.
+A process may have one of the following states:
+❑ Running — The process is executing at the moment.
+❑ Waiting — The process is able to run but is not allowed to because the CPU is allocated to another process. The scheduler can select the process, if it wants to,
+at the next task switch.
+❑ Sleeping — The process is sleeping and cannot run because it is waiting for an external event. The scheduler cannot select the process at the next task switch.
+The system saves all processes in a process table — regardless of whether they are running, sleeping, or waiting. However, sleeping processes are 
+specially ‘‘marked‘‘ so that the scheduler knows they are not ready to run. There are also a number of queues that group sleeping processes so that they can be 
+woken at a suitable time — when, for example, an external event that the process has been waiting for takes place.
+
+Zombie state: As the name suggests, such processes are defunct but are somehow still alive. In reality, they are dead because their resources 
+(RAM, connections to peripherals, etc.) have already been released so that they cannot and never will run again. However, they are still alive because 
+there are still entries for them in the process table. How do zombies come about? The reason lies in the process creation and destruction structure under Unix. 
+A program terminates when two events occur — first, the program must be killed by another process or by a user (this is usually done by 
+sending a SIGTERM or SIGKILL signal, which is equivalent to terminating the process regularly); second, the parent process from which the process originates must 
+invoke or have already invoked the wait4 (read: wait for) system call when the child process terminates. This confirms to the kernel that the parent process has 
+acknowledged the death of the child. The system call enables the kernel to free resources reserved by the child process.A zombie occurs when only the first 
+condition (the program is terminated) applies but not the second (wait4). A process always switches briefly to the zombie state between termination and removal 
+of its data from the process table. In some cases (if, e.g., the parent process is badly programmed and does not issue a wait call), a zombie can firmly lodge 
+itself in the process table and remain there until the next reboot. This can be seen by reading the output of process tools such as ps or top. This is hardly 
+a problem as the residual data take up little space in the kernel.
+
+resource limit (rlimit): Linux provides the resource limit (rlimit) mechanism to impose certain system resource usage limits on processes.
+The definition is purposely kept very general so that it can accept many different resource types.
+❑ rlim_cur is the current resource limit for the process. It is also referred to as the soft limit.
+❑ rlim_max is the maximum allowed value for the limit. It is therefore also referred to as the hard limit.
+The setrlimit system call is used to increase or decrease the current limit. However, the value specified in rlim_max may not be exceeded. 
+getrlimits is used to check the current limit. If a resource type may be used without limits (the default setting for almost all resources), RLIM_INFINITY is 
+used as the value for rlim_max. Exceptions are, among others:
+❑ The number of open files (RLIMIT_NOFILE, limited to 1,024 by default).
+❑ The maximum number of processes per user (RLIMIT_NPROC), defined as max_threads/2. max_threads is a global variable whose value specifies how many 
+threads may be generated so that an eighth of available RAM is used only for management of thread information, given a minimum possible memory usage of 20 threads.
+The boot-time limits for the init task are defined in INIT_RLIMITS in include/asm-generic-resource.h. Notice that kernel 2.6.25, which was still under 
+development when this book was written, will contain one file per process in the proc filesystem, which allows for inspecting the current rlimit values:
+wolfgang@meitner> cat /proc/self/limits
+Limit Soft Limit Hard Limit Units
+
+uname: the information about the system returned by the uname system call (which includes the system name and some information about the kernel) is the same for 
+all callers. User IDs are managed in a similar fashion: Each user is identified by a UID number that is globally unique.
+
+nice - Kernel Representation of Priorities: The static priority of a process can be set in userspace by means of the nice command, which internally invokes 
+the nice system call.25 The nice value of a process is between −20 and +19 (inclusive). Lower values mean higher priorities. Why this strange range was chosen 
+is shrouded in history. The kernel uses a simpler scale ranging from 0 to 139 inclusive to represent priorities internally. Again, lower values mean higher 
+priorities. The range from 0 to 99 is reserved for real-time processes. The nice values [−20, +19] are mapped to the range from 100 to 139, Real-time processes 
+thus always have a higher priority than normal processes can ever have.
+
+
+
+
+
