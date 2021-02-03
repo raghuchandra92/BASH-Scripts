@@ -1,0 +1,77 @@
+Device special files: (often referred to as device files) are used to access expansion devices. These files are not associated with a data segment on hard disk or 
+on any other storage medium but establish a link with a device driver in order to support communication with the expansion device. As far as the application is 
+concerned, there is little difference between processing regular files and device files. Both are handled by exactly the same library functions. However, for more 
+convenient handling, several additional commands are provided to perform actions on device files that are not possible on regular files.
+
+Identifying Device Files: Both the above types can be distinguished by reference to the properties of their device files. Let us look at some members of 
+the /dev directory.
+
+wolfgang@meitner> ls -l /dev/sd{a,b} /dev/ttyS{0,1} 
+brw-r----- 1 root disk 8, 0 2008-02-21 21:06 /dev/sda 
+brw-r----- 1 root disk 8, 16 2008-02-21 21:06 /dev/sdb 
+crw-rw---- 1 root uucp 4, 64 2007-09-21 21:12 ttyS0 
+crw-rw---- 1 root uucp 4, 65 2007-09-21 21:12 ttyS1
+In many aspects, the above output is not different from that for regular files, particularly as concerns the access permissions. However, there are two important 
+differences.
+❑ The letter preceding the access permissions is either b or c to denote block and character devices, respectively.
+❑ Instead of the file size, two figures are given; these are the major number and minor number. Together they form a unique number that allows the kernel to 
+find the corresponding device driver.
+The major number is used to address the device driver itself. For instance, as we can see in the above example, the major number of the first SATA controller on 
+which disks sda and sdb are located is 8. The individual devices of the drive (that is, the primary and secondary disk) are designated by the different minor 
+numbers; 0 for sda and 16 for sdb. 
+
+
+Names are assigned to device files because users (humans) find it easier to remember symbolic names rather than numbers. However, the actual functionality of a 
+device file is not denoted by its name but exclusively by its major and minor number. Neither is the directory in which a device file is located of any relevance. 
+(Nevertheless, a standard way of naming files has been adopted.) mknod is used to create device files. 
+
+
+Block devices
+Block devices account for the second large group of peripherals supported via the VFS interface of the kernel
+Block devices differ fundamentally from character devices in three principle areas.
+❑ Access can be performed at any point within the data. This can but need not be the case with character devices.
+❑ Data are always transferred in fixed-size blocks. Even if a single byte is requested, the device driver must always fetch a 
+complete block from the device. In contrast, character devices are able to return individual bytes.
+❑ Accesses to block devices are massively cached; that is, read data are kept in memory and are accessed from there if they are needed again. Write operations 
+are also delayed by using caches. This makes no sense on character devices (such as keyboards); each read request must be satisfied by genuine interaction 
+with the device.
+We use two terms repeatedly below — block and sector. A block is a byte sequence of a specific size used to hold data transferred between the kernel and a device; 
+the size of the block can be modified by software means. A sector is a fixed hardware unit and specifies the smallest amount of data that can be transferred by a 
+device. A block is nothing more than a sequence of successive sectors; consequently, the block size must always be an integer multiple of the sector size. As a 
+sector is a hardware-specific constant, it is also used to specify the position of a data block on a device. The kernel regards each block device as a linear list 
+of integer-numbered sectors or blocks.
+All inodes that represent block devices are kept on the bdev pseudo-filesystem, which is not visible to userland. This allows for using standard VFS functions to 
+work with the collection of block device inodes.
+❑ The device number for the block device is stored in bd_dev.7
+❑ A link back to the inode that represents the block device in the bdev pseudo-filesystem is given by bd_inode (basically, this could also be obtained using bdget, 
+so the information is redundant, and the field will be removed in a future kernel version).
+❑ bd_inodes heads a list of all inodes that represent device special files for the block device.
+These inodes represent regular files and must not be confused with the bdev inode, which represents the block device itself!
+
+I/O ports and I/O memory are two conceptual ways of supporting communication between device drivers and devices. So that the various drivers do not interfere with 
+each other, it is essential to reserve ports and I/O memory ranges prior to use by a driver. This ensures that several device drivers do not attempt to access the 
+same resources.
+
+I/O memory: One of the most important aspects of the resource concept deals with how I/O memory is distributed because this is the main way on all platforms (with 
+the exception of IA-32, where great importance is attached to I/O ports) of communicating with peripherals. I/O memory includes not only the memory regions used 
+directly to communicate with expansion devices but also the regular RAM and ROM memory available to the system and included in the resource list (which can be 
+displayed using the iomem file in the proc filesystem).
+wolfgang@meitner> cat /proc/iomem 
+00000000-0009e7ff : System RAM 
+0009e800-0009ffff : reserved 
+000a0000-000bffff : Video RAM area 
+000c0000-000c7fff : Video ROM 
+000f0000-000fffff : System ROM
+
+I/O ports: I/O ports are a popular way of communicating with devices and buses, above all in the IA-32 world. As with I/O memory, the required region must first be 
+registered before it can be accessed by a driver in good faith — unfortunately, the processor is again unable to check whether this has been done. ioport_resource 
+from kernel/resource.c acts as the root element of a resource tree. The ioports file in the proc filesystem reveals the reserved port addresses.
+wolfgang@meitner> cat /proc/ioports 0000-001f : dma1
+0020-003f : pic1
+0040-005f : timer
+0060-006f : keyboard
+
+
+
+
+
