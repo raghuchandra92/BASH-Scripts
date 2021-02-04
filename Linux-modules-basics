@@ -1,0 +1,48 @@
+Modules are an efficient way of adding device drivers, filesystems and other components dynamically into the Linux kernel without having to build a new kernel or 
+reboot the system. They remove many of the restrictions constantly raised as arguments against monolithic architectures by, above all, micro-kernel proponents. 
+❑ By using modules, distributors are able to pre-compile a comprehensive collection of drivers without bloating the size of the kernel image beyond bounds. After 
+automatic hardware detection or user prompting, the installation routine selects the appropriate modules and adds them into the kernel.
+This enables even inexperienced users to install drivers for system devices without having to build a new kernel. This represents a major step toward (and perhaps 
+even a prerequisite for) wider acceptance of Linux systems.
+❑ Kernel developers can pack experimental code into modules that can be unloaded and reloaded after each modification. This allows new features to be tested 
+quickly without having to reboot the system each time.
+To add and remove modules, there are several system calls that are normally addressed using the tools of the modutils package that is installed on practically 
+every system.
+
+
+From the user point of view, modules can be added into a running kernel by two different system programs: modprobe and insmod.
+The former takes into account the dependencies that arise between indi- vidual modules when a module depends on the functions of one or more partner modules. 
+In contrast, insmod loads only a single module into the kernel, and this module may depend only on the code already in the kernel, regardless of whether the 
+code was generated dynamically by modules or is permanently compiled into the kernel.
+
+The nm tool can be used to generate a list of all external functions in a module (or in any object file)
+
+
+The depmod tool in the modutils standard tool collection is used to calculate the dependencies between the modules of a system. depmod analyzes the binary code of 
+all available modules, generates a list for each that includes all defined symbols and all unresolved references, and finally compares these lists with each other. 
+If module A contains a symbol that is found in module B as an unresolved reference, this means that B depends on A — and this fact will be duly acknowledged by
+means of an entry in the form B: A in the dependency file. Most symbols to which the modules refer are not defined in other modules but in the kernel itself. For 
+this reason, the file /lib/modules/version/System.map is generated (likewise using depmod) when modules are installed. This file lists all symbols exported by the 
+kernel. If it contains an unresolved symbol of a module, this is not a problem because it will be resolved automatically when the module is loaded. If the symbol 
+cannot be found in the file or in another module, the module may not be added into the kernel because it refers to external functions not implemented anywhere.
+
+It is not difficult for the kernel to insert the binary code once it has access to it. How- ever, it cannot do this without further help from userspace. The binary 
+file must be localized in the filesystem, and dependencies must be resolved. Because this is far easier to do in userspace than in ker- nel space, the kernel has 
+an auxiliary task known as kmod to which these tasks are delegated. Note that kmod is not a permanent daemon, but is only initiated by the kernel on demand.
+
+Two system calls form the interface between the userspace tools and the module implementation of the kernel:
+❑ init_module — Inserts a new module into the kernel. All the userspace tool needs do is provide the binary data. All further steps (particularly relocation and 
+symbol resolution) are performed in the kernel itself.
+❑ delete_module — Removes a module from the kernel. A prerequisite is, of course, that the code is no longer in use and that no other modules are employing 
+functions exported from the module.
+There is also a function named request_module (not a system call) that is used to load modules from the kernel side. It is required not only to load modules but 
+also to implement hotplug capabilities.
+
+
+
+
+
+
+
+
+
